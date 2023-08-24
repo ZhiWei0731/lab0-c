@@ -232,8 +232,80 @@ void q_reverseK(struct list_head *head, int k)
     }
 }
 
+/**
+ * merge_two_q() - Sort elements of two sub-queue into one queue in
+ * ascending/descending order.
+ * @head: header of queue after merged two queue
+ * @left: header of left sub-queue
+ * @right: header of right sub-queue
+ * @descend: whether or not to sort in descending order
+ *
+ * This function is used to help q_sort().
+ */
+void merge_two_q(struct list_head *head,
+                 struct list_head *left,
+                 struct list_head *right,
+                 bool descend)
+{
+    switch ((int) descend) {
+    case 1:
+        while (!list_empty(left) && !list_empty(right)) {
+            if (strcmp(list_entry(left->next, element_t, list)->value,
+                       list_entry(right->next, element_t, list)->value) > 0) {
+                list_move_tail(left->next, head);
+            } else {
+                list_move_tail(right->next, head);
+            }
+        }
+        break;
+    case 0:
+        while (!list_empty(left) && !list_empty(right)) {
+            if (strcmp(list_entry(left->next, element_t, list)->value,
+                       list_entry(right->next, element_t, list)->value) < 0) {
+                list_move_tail(left->next, head);
+            } else {
+                list_move_tail(right->next, head);
+            }
+        }
+        break;
+    default:
+        break;
+    }
+
+    /* link the remaining nodes */
+    if (!list_empty(left)) {
+        list_splice_tail_init(left, head);
+    } else {
+        list_splice_tail_init(right, head);
+    }
+    return;
+}
+
 /* Sort elements of queue in ascending/descending order */
-void q_sort(struct list_head *head, bool descend) {}
+void q_sort(struct list_head *head, bool descend)
+{
+    if (!head || q_size(head) < 2)
+        return;
+
+    struct list_head *fast = head, *slow = head;
+    do {
+        fast = fast->next->next;
+        slow = slow->next;
+    } while (fast != head && fast->next != head);
+
+    struct list_head *left = malloc(sizeof(struct list_head));
+    struct list_head *right = malloc(sizeof(struct list_head));
+    INIT_LIST_HEAD(left);
+    INIT_LIST_HEAD(right);
+    list_splice_tail_init(head, right);
+    list_cut_position(left, right, slow);
+    q_sort(left, descend);
+    q_sort(right, descend);
+    merge_two_q(head, left, right, descend);
+    free(left);
+    free(right);
+    return;
+}
 
 /* Remove every node which has a node with a strictly less value anywhere to
  * the right side of it */
