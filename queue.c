@@ -293,17 +293,13 @@ void q_sort(struct list_head *head, bool descend)
         slow = slow->next;
     } while (fast != head && fast->next != head);
 
-    struct list_head *left = malloc(sizeof(struct list_head));
-    struct list_head *right = malloc(sizeof(struct list_head));
-    INIT_LIST_HEAD(left);
-    INIT_LIST_HEAD(right);
-    list_splice_tail_init(head, right);
-    list_cut_position(left, right, slow);
-    q_sort(left, descend);
-    q_sort(right, descend);
-    merge_two_q(head, left, right, descend);
-    free(left);
-    free(right);
+    LIST_HEAD(left);
+    LIST_HEAD(right);
+    list_splice_tail_init(head, &right);
+    list_cut_position(&left, &right, slow);
+    q_sort(&left, descend);
+    q_sort(&right, descend);
+    merge_two_q(head, &left, &right, descend);
     return;
 }
 
@@ -364,5 +360,18 @@ int q_descend(struct list_head *head)
 int q_merge(struct list_head *head, bool descend)
 {
     // https://leetcode.com/problems/merge-k-sorted-lists/
-    return 0;
+
+    if (!head || list_empty(head))
+        return 0;
+    queue_contex_t *first = list_first_entry(head, queue_contex_t, chain),
+                   *ctx = NULL;
+    int sum = first->size;
+    list_for_each_entry (ctx, head, chain) {
+        if (ctx == first)
+            continue;
+        sum += ctx->size;
+        list_splice_tail_init(ctx->q, first->q);
+    }
+    q_sort(first->q, descend);
+    return sum;
 }
